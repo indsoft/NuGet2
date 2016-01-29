@@ -114,7 +114,7 @@ namespace NuGet
             var manifest = ManifestReader.ReadManifest(document);
 
             // Validate before returning
-            Validate(manifest);
+            if (validateSchema) Validate(manifest);
 
             return manifest;
         }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.Text;
@@ -146,12 +147,17 @@ namespace NuGet
             return semVer;
         }
 
+		static readonly Dictionary<string, SemanticVersion>  TryParseCache=new Dictionary<string, SemanticVersion>();
         /// <summary>
         /// Parses a version string using loose semantic versioning rules that allows 2-4 version components followed by an optional special version.
         /// </summary>
         public static bool TryParse(string version, out SemanticVersion value)
         {
-            return TryParseInternal(version, _semanticVersionRegex, out value);
+			lock (TryParseCache) if (TryParseCache.TryGetValue(version, out value)) return value != null;
+
+	        bool result = TryParseInternal(version, _semanticVersionRegex, out value);
+			lock(TryParseCache) TryParseCache[version]=(result)?value:null;
+	        return result;
         }
 
         /// <summary>

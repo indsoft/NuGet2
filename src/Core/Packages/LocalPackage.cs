@@ -214,10 +214,31 @@ namespace NuGet
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1024:UsePropertiesWhereAppropriate", Justification = "This operation can be expensive.")]
         protected abstract IEnumerable<IPackageAssemblyReference> GetAssemblyReferencesCore();
 
+
+	    protected virtual string GetCacheFilePath()
+	    {
+		    return null;
+	    }
+
         protected void ReadManifest(Stream manifestStream)
         {
-            Manifest manifest = Manifest.ReadFrom(manifestStream, validateSchema: false);
-
+	        string cacheFilePath = GetCacheFilePath();
+	        Manifest manifest;
+	        if (cacheFilePath != null && File.Exists(cacheFilePath))
+	        {
+		        using (FileStream fs = File.OpenRead(cacheFilePath))
+			        manifest = Manifest.ReadFrom(fs, false);
+	        }
+	        else
+	        {
+		        manifest = Manifest.ReadFrom(manifestStream, validateSchema: false);
+		        if (cacheFilePath != null)
+		        {
+			        using (FileStream fs = File.Create(cacheFilePath))
+				        manifest.Save(fs, false);
+		        }
+	        }
+			
             IPackageMetadata metadata = manifest.Metadata;
 
             Id = metadata.Id;

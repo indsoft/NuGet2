@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Runtime.Remoting.Messaging;
 using System.Runtime.Versioning;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -241,6 +242,9 @@ namespace NuGet
             }
         }
 
+		private static readonly Dictionary<string,FrameworkName> FrameworkNameCache=new Dictionary<string, FrameworkName>();
+	    private static readonly FrameworkName Net40 = new FrameworkName(".NETFramework", new Version(4, 0), null);
+
         /// <summary>
         /// This function tries to normalize a string that represents framework version names into
         /// something a framework name that the package manager understands.
@@ -251,9 +255,15 @@ namespace NuGet
             {
                 throw new ArgumentNullException("frameworkName");
             }
+			
+            // {Identifier}{Version}-{Profile}%
 
-            // {Identifier}{Version}-{Profile}
-
+	        FrameworkName result;
+			lock (FrameworkNameCache)
+				if (FrameworkNameCache.TryGetValue(frameworkName, out result))
+				{
+					return result;
+				}
             // Split the framework name into 3 parts, identifier, version and profile.
             string identifierPart = null;
             string versionPart = null;
@@ -347,8 +357,9 @@ namespace NuGet
             {
                 ValidatePortableFrameworkProfilePart(profilePart);
             }
-
-            return new FrameworkName(identifierPart, version, profilePart);
+			result= new FrameworkName(identifierPart, version, profilePart);
+			lock(FrameworkNameCache) FrameworkNameCache[frameworkName]=result;
+	        return result;
         }
 
         internal static void ValidatePortableFrameworkProfilePart(string profilePart)

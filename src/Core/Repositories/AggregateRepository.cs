@@ -193,9 +193,16 @@ namespace NuGet
             });
         }
 
-        [SuppressMessage("Microsoft.Design", "CA1031:DoNotCatchGeneralExceptionTypes", Justification = "We want to suppress any exception that we may encounter.")]
+		readonly Dictionary<string, IPackage[]> _findPackagesByIdCache = new Dictionary<string, IPackage[]>();
+			
+		[SuppressMessage("Microsoft.Design", "CA1031:DoNotCatchGeneralExceptionTypes", Justification = "We want to suppress any exception that we may encounter.")]
         public IEnumerable<IPackage> FindPackagesById(string packageId)
-        {
+		{
+			IPackage[] result;
+			if (_findPackagesByIdCache.TryGetValue(packageId, out result)) return result;
+		//	result = _repositories.SelectMany(p => p.FindPackagesById(packageId)).ToArray();
+		//	_findPackagesByIdCache.Add(packageId,result);
+			
             var tasks = _repositories.Select(p => Task.Factory.StartNew(state => p.FindPackagesById(packageId), p)).ToArray();
 
             try
@@ -222,10 +229,11 @@ namespace NuGet
                     allPackages.AddRange(task.Result);
                 }
             }
+			_findPackagesByIdCache.Add(packageId, allPackages.ToArray());
             return allPackages;
-        }
+		}
 
-        [SuppressMessage("Microsoft.Design", "CA1031:DoNotCatchGeneralExceptionTypes", Justification = "We want to suppress any exception that we may encounter.")]
+	    [SuppressMessage("Microsoft.Design", "CA1031:DoNotCatchGeneralExceptionTypes", Justification = "We want to suppress any exception that we may encounter.")]
         public IEnumerable<IPackage> GetUpdates(
             IEnumerable<IPackageName> packages, 
             bool includePrerelease, 

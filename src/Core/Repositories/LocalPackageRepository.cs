@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using NuGet.Resources;
 using System;
 using System.Collections.Concurrent;
@@ -11,7 +12,7 @@ namespace NuGet
 {
     public class LocalPackageRepository : PackageRepositoryBase, IPackageLookup
     {
-        private readonly ConcurrentDictionary<string, PackageCacheEntry> _packageCache = new ConcurrentDictionary<string, PackageCacheEntry>(StringComparer.OrdinalIgnoreCase);
+        private static readonly ConcurrentDictionary<string, PackageCacheEntry> _packageCache = new ConcurrentDictionary<string, PackageCacheEntry>(StringComparer.OrdinalIgnoreCase);
         private readonly ConcurrentDictionary<PackageName, string> _packagePathLookup = new ConcurrentDictionary<PackageName, string>();
         private readonly bool _enableCaching;
 
@@ -135,6 +136,7 @@ namespace NuGet
             }
         }
 
+		readonly Dictionary<string, IPackage> _findPackageCache=new Dictionary<string, IPackage>();  
         public virtual IPackage FindPackage(string packageId, SemanticVersion version)
         {
             if (String.IsNullOrEmpty(packageId))
@@ -145,7 +147,15 @@ namespace NuGet
             {
                 throw new ArgumentNullException("version");
             }
-            return FindPackage(OpenPackage, packageId, version);
+	        IPackage findPackage ;
+	        string key = packageId + "." + version.ToNormalizedString();
+	        if (!_findPackageCache.TryGetValue(key, out findPackage))
+	        {
+				findPackage = FindPackage(OpenPackage, packageId, version);
+				_findPackageCache.Add(key,findPackage);
+	        }
+
+	        return findPackage;
         }
 
         public virtual IEnumerable<IPackage> FindPackagesById(string packageId)
@@ -231,14 +241,14 @@ namespace NuGet
                 GetPackages(
                     openPackage,
                     packageId,
-                    GetPackageFiles(packageId + "*" + Constants.PackageExtension)));
+                    GetPackageFiles(packageId + ".*" + Constants.PackageExtension)));
 
             // then, get packages through nuspec files
             packages.AddRange(
                 GetPackages(
                     openPackage,
                     packageId,
-                    GetPackageFiles(packageId + "*" + Constants.ManifestExtension)));
+                    GetPackageFiles(packageId + ".*" + Constants.ManifestExtension)));
             return packages;
         }
 
@@ -304,6 +314,7 @@ namespace NuGet
                 (cacheEntry != null && lastModified > cacheEntry.LastModifiedTime))
             {
                 // We need to do this so we capture the correct loop variable
+//	            Console.WriteLine("Adding {0} to cache",path);
                 string packagePath = path;
 
                 // Create the package
@@ -323,6 +334,9 @@ namespace NuGet
             return cacheEntry.Package;
         }
 
+		//key: extension
+	    private readonly Dictionary<string,NamingTreeNode> _allPackageNodes=new Dictionary<string, NamingTreeNode>();
+
         internal IEnumerable<string> GetPackageFiles(string filter = null)
         {
             filter = filter ?? "*" + Constants.PackageExtension;
@@ -333,6 +347,23 @@ namespace NuGet
             // Check for package files one level deep. We use this at package install time
             // to determine the set of installed packages. Installed packages are copied to
             // {id}.{version}\{packagefile}.{extension}.
+
+	        string extension = Path.GetExtension(filter);
+	        NamingTreeNode knownPackages;
+			if (!_allPackageNodes.TryGetValue(extension, out knownPackages))
+	        {
+		        knownPackages = PreparePackages(extension);
+				_allPackageNodes[extension] = knownPackages;
+	        }
+
+	        IEnumerable<string> result = knownPackages.GetFiltered(filter);
+
+	      /*  if (result.Count() != GetPackageFilesTest(filter).Count())
+	        {
+		        
+	        }*/
+	        return result;
+	        /*
             foreach (var dir in FileSystem.GetDirectories(String.Empty))
             {
                 foreach (var path in FileSystem.GetFiles(dir, filter))
@@ -345,10 +376,169 @@ namespace NuGet
             foreach (var path in FileSystem.GetFiles(String.Empty, filter))
             {
                 yield return path;
-            }
+            }*/
         }
 
-        internal virtual IPackage OpenPackage(string path)
+	 /*   internal IEnumerable<string> GetPackageFilesTest(string filter )
+	    {
+			foreach (var dir in FileSystem.GetDirectories(String.Empty))
+			{
+				foreach (var path in FileSystem.GetFiles(dir, filter))
+				{
+					yield return path;
+				}
+			}
+
+			// Check top level directory
+			foreach (var path in FileSystem.GetFiles(String.Empty, filter))
+			{
+				yield return path;
+			}
+	    }*/
+
+	    private NamingTreeNode PreparePackages(string extension)
+	    {
+			var allPackages=new List<string>();
+			foreach (var dir in FileSystem.GetDirectories(String.Empty))
+			{
+				allPackages.AddRange(FileSystem.GetFiles(dir, "*"+extension));
+			}
+			// Check top level directory
+			allPackages.AddRange(FileSystem.GetFiles(String.Empty, "*" + extension));
+			NamingTreeNode root=new NamingTreeNode(null,allPackages.Select(x=>new PackagePath{FileName = Path.GetFileNameWithoutExtension(x),FullPath = x}).ToArray());
+			return root;
+	    }
+		private static readonly Regex PackageNameRegex = new Regex(@"^(.+)\.\d+\.\d+\.\d+\.\d+.*$",RegexOptions.Compiled);
+
+
+	    
+		private class NamingTreeNode
+		{
+			/// <summary>
+			/// plne cesty
+			/// </summary>
+			private readonly PackagePath[] _leaves;
+
+			private readonly Dictionary<string, NamingTreeNode> _subNodes;
+			private readonly string _baseName;
+
+			public NamingTreeNode(string baseName, IEnumerable<PackagePath> paths)
+			{
+				_baseName = baseName;
+				List<PackagePath> leavesList = new List<PackagePath>();
+				Dictionary<string,List<PackagePath>> subnodesList=new Dictionary<string, List<PackagePath>>();
+				foreach (PackagePath packagePath in paths)
+				{
+					string fileName = packagePath.FileName;
+					if (baseName != null)
+					{
+						fileName=fileName.Remove(0, baseName.Length);
+					}
+					string[] parts = fileName.Split(new []{'.'},2);
+					if (parts.Length == 1)
+					{
+						leavesList.Add(packagePath);
+					}
+					else
+					{
+						string key = (((baseName != null) ? (baseName) : "") + parts[0] + ".").ToUpper();
+						List<PackagePath> subpackagesByKey;
+						if (!subnodesList.TryGetValue(key, out subpackagesByKey))
+						{
+							subpackagesByKey=new List<PackagePath>();
+							subnodesList.Add(key,subpackagesByKey);
+						}
+						subpackagesByKey.Add(packagePath);
+					}
+				}
+
+				if (leavesList.Count > 0) _leaves = leavesList.ToArray();
+				if (subnodesList.Count > 0)
+				{
+					_subNodes=new Dictionary<string, NamingTreeNode>();
+					foreach (KeyValuePair<string, List<PackagePath>> keyValuePair in subnodesList)
+					{
+						_subNodes.Add(keyValuePair.Key, new NamingTreeNode(keyValuePair.Key, keyValuePair.Value));
+					}
+				}
+			}
+
+			public IEnumerable<string> GetFiltered(string filter)
+			{
+				List<string> result=new List<string>();
+				FillByFilterRecursive(result, Path.GetFileNameWithoutExtension(filter), Path.GetFileNameWithoutExtension(filter));
+				return result;
+			}
+
+			private void FillByFilterRecursive(List<string> result, string filter, string fullFilterWithoutExtension)
+			{
+				string[] parts = filter.Split(new[] { '.' }, 2);
+				if (parts.Length == 2 && !parts[0].Contains("*"))
+				{
+					string key = ((_baseName??"")+ parts[0] + '.').ToUpper();
+					NamingTreeNode node;
+					if (_subNodes!=null)
+						if (_subNodes.TryGetValue(key, out node))
+						{
+							node.FillByFilterRecursive(result, parts[1], fullFilterWithoutExtension);
+						}
+					return;
+				}
+				if (_baseName == null)
+				{
+					
+				}
+				string[] strings = fullFilterWithoutExtension.Split('*');
+				if (strings.Length>2)
+				{
+					Regex reg = new Regex("^" + fullFilterWithoutExtension.Replace(".",@"\.").Replace("*", ".*") + "$",RegexOptions.IgnoreCase);
+					result.AddRange(GetAllLeavesRecursive().Where(x => reg.IsMatch(x.FileName)).Select(x=>x.FullPath));
+				}
+				else
+				if (strings.Length == 2)
+				{
+					result.AddRange(GetAllLeavesRecursive().Where(x => x.FileName.StartsWith(strings[0],StringComparison.InvariantCultureIgnoreCase) && x.FileName.EndsWith(strings[1],StringComparison.InvariantCultureIgnoreCase)).Select(x=>x.FullPath));
+				}
+				else
+				{
+					result.AddRange(GetAllLeavesRecursive().Where(x=>String.Compare(x.FileName,fullFilterWithoutExtension,StringComparison.InvariantCultureIgnoreCase)==0).Select(x=>x.FullPath));
+				}
+			}
+
+			private IEnumerable<PackagePath> GetAllLeavesRecursive()
+			{
+				if (_leaves == null && _subNodes == null) return new PackagePath[0];
+				if (_leaves != null && _subNodes == null) return _leaves;
+				List<PackagePath> results = new List<PackagePath>();
+				if (_leaves!=null)
+					results.AddRange(_leaves);
+				foreach (NamingTreeNode namingTreeNode in _subNodes.Values)
+				{
+					results.AddRange(namingTreeNode.GetAllLeavesRecursive());
+				}
+				return results;
+			}
+		}
+
+	    private struct PackagePath
+	    {
+		    public string FileName;
+			public string FullPath;
+	    }
+
+	    private static string GetPackageName(string path)
+	    {
+			string fileName = Path.GetFileName(path);
+			if (fileName == null) return String.Empty;
+			Match match = PackageNameRegex.Match(fileName);
+		    if (match.Success)
+		    {
+			    return match.Groups[1].Value;
+		    }
+		    return String.Empty;
+	    }
+
+	    internal virtual IPackage OpenPackage(string path)
         {
             if (!FileSystem.FileExists(path))
             {

@@ -201,8 +201,19 @@ namespace NuGet
             return _supportedFrameworks;
         }
 
-        private void EnsureManifest()
+	    protected override string GetCacheFilePath()
+	    {
+		    return _fileSystem.GetFullPath(_packagePath) + ".manifestCache";
+
+	    }
+
+	    private void EnsureManifest()
         {
+		    if (File.Exists(GetCacheFilePath()))
+		    {
+			    ReadManifest(null);
+			    return;
+		    }
             using (Stream stream = _fileSystem.OpenFile(_packagePath))
             {
                 using (Stream manifestStream = PackageHelper.GetManifestStream(stream))
