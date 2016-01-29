@@ -87,18 +87,21 @@ namespace NuGet.Commands
             }
             
             // update with solution as parameter
-            string solutionDir = Path.GetDirectoryName(inputFile);
-            UpdateAllPackages(solutionDir);
+            
+            UpdateAllPackages(inputFile);
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1031:DoNotCatchGeneralExceptionTypes")]
-        private void UpdateAllPackages(string solutionDir)
+        private void UpdateAllPackages(string solutionFile)
         {
             Console.WriteLine(LocalizedResourceManager.GetString("ScanningForProjects"));
 
-            // Search recursively for all packages.xxx.config files
-            string[] packagesConfigFiles = Directory.GetFiles(
-                solutionDir, "*.config", SearchOption.AllDirectories);
+			MSBuildSolutionParser parser=new MSBuildSolutionParser();
+			IEnumerable<string> allProjectFileNames = parser.GetAllProjectFileNames(FileSystem, solutionFile);
+	        // Search recursively for all packages.xxx.config files
+
+
+			string[] packagesConfigFiles = allProjectFileNames.SelectMany(x=>Directory.GetFiles(Path.GetDirectoryName(x), "packages*.config", SearchOption.AllDirectories)).ToArray();
 
             var projects = packagesConfigFiles.Where(s => Path.GetFileName(s).StartsWith("packages.", StringComparison.OrdinalIgnoreCase))
                                               .Select(GetProject)
@@ -120,6 +123,7 @@ namespace NuGet.Commands
             {
                 Console.WriteLine(LocalizedResourceManager.GetString("FoundProjects"), projects.Count, String.Join(", ", projects.Select(p => p.ProjectName)));
             }
+			string solutionDir = Path.GetDirectoryName(solutionFile);
 
             string repositoryPath = GetRepositoryPathFromSolution(solutionDir);
             IPackageRepository sourceRepository = AggregateRepositoryHelper.CreateAggregateRepositoryFromSources(RepositoryFactory, SourceProvider, Source);
