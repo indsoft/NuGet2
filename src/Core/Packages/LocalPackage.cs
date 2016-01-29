@@ -227,7 +227,7 @@ namespace NuGet
 	        if (cacheFilePath != null && File.Exists(cacheFilePath))
 	        {
 		        using (FileStream fs = File.OpenRead(cacheFilePath))
-			        manifest = Manifest.ReadFrom(fs, false);
+			        manifest = Manifest.ReadFrom(fs,false,false);
 	        }
 	        else
 	        {

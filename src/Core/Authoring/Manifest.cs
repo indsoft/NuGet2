@@ -76,12 +76,12 @@ namespace NuGet
             serializer.Serialize(stream, this, ns);
         }
 
-        public static Manifest ReadFrom(Stream stream, bool validateSchema)
+		public static Manifest ReadFrom(Stream stream, bool validateSchema, bool validateManifest = true)
         {
-            return ReadFrom(stream, NullPropertyProvider.Instance, validateSchema);
+            return ReadFrom(stream, NullPropertyProvider.Instance, validateSchema,validateManifest);
         }
 
-        public static Manifest ReadFrom(Stream stream, IPropertyProvider propertyProvider, bool validateSchema)
+        public static Manifest ReadFrom(Stream stream, IPropertyProvider propertyProvider, bool validateSchema, bool validateManifest=true)
         {
             XDocument document;
             if (propertyProvider == NullPropertyProvider.Instance)
@@ -114,7 +114,7 @@ namespace NuGet
             var manifest = ManifestReader.ReadManifest(document);
 
             // Validate before returning
-            if (validateSchema) Validate(manifest);
+            if (validateManifest) Validate(manifest);
 
             return manifest;
         }

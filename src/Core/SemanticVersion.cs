@@ -153,6 +153,11 @@ namespace NuGet
         /// </summary>
         public static bool TryParse(string version, out SemanticVersion value)
         {
+	        if (version == null)
+	        {
+		        value = null;
+		        return false;
+	        }
 			lock (TryParseCache) if (TryParseCache.TryGetValue(version, out value)) return value != null;
 
 	        bool result = TryParseInternal(version, _semanticVersionRegex, out value);
