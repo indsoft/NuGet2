@@ -122,7 +122,7 @@ namespace NuGet.Commands
             protected override void OnExpandFiles(PackageOperationEventArgs e)
             {
                 e.Package.ExtractContents(e.FileSystem, e.InstallPath);
-                LocalRepository.AddPackage(e.Package);
+	            //LocalRepository.AddPackage(e.Package); --install is called aftewards in PackageManager
 
                 base.ExpandSatellitePackageFiles(e.Package);
             }

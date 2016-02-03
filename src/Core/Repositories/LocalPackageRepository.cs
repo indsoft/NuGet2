@@ -109,6 +109,7 @@ namespace NuGet
                 string packageFilePath = GetPackageFilePath(package);
 
                 FileSystem.AddFileWithCheck(packageFilePath, package.GetStream);
+	            lock (_allPackageNodes) _allPackageNodes.Remove(Path.GetExtension(packageFilePath) ?? "");
             }
         }
 
@@ -149,11 +150,9 @@ namespace NuGet
             }
 	        IPackage findPackage ;
 	        string key = packageId + "." + version.ToNormalizedString();
-	        if (!_findPackageCache.TryGetValue(key, out findPackage))
-	        {
-				findPackage = FindPackage(OpenPackage, packageId, version);
-				_findPackageCache.Add(key,findPackage);
-	        }
+	        if (_enableCaching ) lock (_findPackageCache) if (_findPackageCache.TryGetValue(key, out findPackage)) return findPackage;
+	        findPackage = FindPackage(OpenPackage, packageId, version);
+			if (_enableCaching && findPackage==null) lock (_findPackageCache)  _findPackageCache.Add(key, findPackage);
 
 	        return findPackage;
         }
