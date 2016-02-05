@@ -489,6 +489,8 @@ namespace NuGet
             {
                 string fullImportFilePath = Path.Combine(PathResolver.GetInstallPath(package), importFile.Path);
                 Project.RemoveImport(fullImportFilePath);
+				Project.RemoveImport(package.Id+"*"+importFile.Path);
+				
             }
 
             // Remove package to the repository

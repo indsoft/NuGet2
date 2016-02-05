@@ -152,7 +152,7 @@ namespace NuGet.Common
                 throw new ArgumentNullException("targetFullPath");
             }
             
-            var targetRelativePath = PathUtility.GetRelativePath(PathUtility.EnsureTrailingSlash(Root), targetFullPath);
+            var targetRelativePath = (targetFullPath.Contains("*"))?targetFullPath:PathUtility.GetRelativePath(PathUtility.EnsureTrailingSlash(Root), targetFullPath);
             NuGet.MSBuildProjectUtility.RemoveImportStatement(Project, targetRelativePath);
             Project.Save();
         }

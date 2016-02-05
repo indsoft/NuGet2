@@ -45,16 +45,34 @@ namespace NuGet
         {
             if (project.Xml.Imports != null)
             {
-                // search for this import statement and remove it
-                var importElement = project.Xml.Imports.FirstOrDefault(
-                    import => targetsPath.Equals(import.Project, StringComparison.OrdinalIgnoreCase));
-
-                if (importElement != null)
+                if (targetsPath.Contains("*"))
                 {
-                    importElement.Parent.RemoveChild(importElement);
-                    NuGet.MSBuildProjectUtility.RemoveEnsureImportedTarget(project, targetsPath);
-                    project.ReevaluateIfNecessary();
-                }
+	                string[] parts = targetsPath.Split(new char[]{'*'},2);
+	                // search for this import statement and remove it
+					var importElement = project.Xml.Imports.FirstOrDefault(
+						import => import.Project.IndexOf(parts[0],0, StringComparison.OrdinalIgnoreCase)>0 &&  import.Project.EndsWith(parts[1], StringComparison.OrdinalIgnoreCase));
+
+					if (importElement != null)
+					{
+						targetsPath = importElement.Project;
+						importElement.Parent.RemoveChild(importElement);
+						NuGet.MSBuildProjectUtility.RemoveEnsureImportedTarget(project, targetsPath);
+						project.ReevaluateIfNecessary();
+					}
+					return;
+				}
+	            {
+		            // search for this import statement and remove it
+		            var importElement = project.Xml.Imports.FirstOrDefault(
+			            import => targetsPath.Equals(import.Project, StringComparison.OrdinalIgnoreCase));
+
+		            if (importElement != null)
+		            {
+			            importElement.Parent.RemoveChild(importElement);
+			            NuGet.MSBuildProjectUtility.RemoveEnsureImportedTarget(project, targetsPath);
+			            project.ReevaluateIfNecessary();
+		            }
+	            }
             }
         }
 
