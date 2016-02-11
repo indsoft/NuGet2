@@ -274,7 +274,7 @@
     <value>Unable to locate '{0} {1}'. Make sure all packages exist in the packages folder before running update.</value>
   </data>
   <data name="UnableToFindPackages" xml:space="preserve">
-    <value>Unable to find '{0}'. Make sure they are specified in packages.config.</value>
+    <value>Unable to find '{0}'. Make sure they are specified in packages.config or packages from packages.config exists in repository. Try TryFixMissingPackages parameter.</value>
   </data>
   <data name="UnableToLocatePackagesFolder" xml:space="preserve">
     <value>Unable to locate the packages folder. Try specifying it using the repositoryPath switch.</value>
