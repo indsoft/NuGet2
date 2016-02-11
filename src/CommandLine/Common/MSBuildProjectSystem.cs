@@ -4,16 +4,22 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Versioning;
+using System.Text;
 using Microsoft.Build.Evaluation;
 
 namespace NuGet.Common
 {
     public class MSBuildProjectSystem : PhysicalFileSystem, IMSBuildProjectSystem, IEquatable<MSBuildProjectSystem>
     {
-        public MSBuildProjectSystem(string projectFile)
+	    private string _originalFileContent;
+
+	    public MSBuildProjectSystem(string projectFile)
             : base(Path.GetDirectoryName(projectFile))
         {
             Project = GetProject(projectFile);
+	        StringWriter stringWriter = new StringWriter();
+	        Project.Save(stringWriter);
+		    _originalFileContent = stringWriter.GetStringBuilder().ToString();
         }
 
         public bool IsBindingRedirectSupported
@@ -43,10 +49,11 @@ namespace NuGet.Common
             string include = Path.GetFileNameWithoutExtension(fullPath);
 
             Project.AddItem("Reference",
-                            include,
+                            include
+							/*,
                             new[] { 
                                     new KeyValuePair<string, string>("HintPath", relativePath)
-                                });
+                                }*/);
         }
 
         public dynamic GetPropertyValue(string propertyName)
@@ -115,7 +122,11 @@ namespace NuGet.Common
 
         public void Save()
         {
-            Project.Save();
+			StringWriter stringWriter = new StringWriter();
+			Project.Save(stringWriter);
+			string newFileContent = stringWriter.GetStringBuilder().ToString();
+			if (_originalFileContent!=newFileContent)
+				Project.Save();
         }
 
         public bool FileExistsInProject(string path)

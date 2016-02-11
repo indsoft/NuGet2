@@ -238,10 +238,10 @@ namespace NuGet.VisualStudio
                             if (item != null)
                             {
                                 // Add the <HintPath> metadata item as a relative path
-                                item.SetMetadataValue("HintPath", referencePath);
+                            //    item.SetMetadataValue("HintPath", referencePath);
 
                                 // Set <Private> to true
-                                item.SetMetadataValue("Private", "True");
+                             //   item.SetMetadataValue("Private", "True");
 
                                 // Save the project after we've modified it.
                                 Project.Save(this);
