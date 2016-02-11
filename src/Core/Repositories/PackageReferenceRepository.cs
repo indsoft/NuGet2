@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Runtime.Versioning;
 
@@ -97,7 +98,9 @@ namespace NuGet
             }
         }
 
-        public IQueryable<IPackage> GetPackages()
+	    public bool AllowMissingPackages { get; set; }
+
+	    public IQueryable<IPackage> GetPackages()
         {
             return GetPackagesCore().AsQueryable();
         }
@@ -243,14 +246,77 @@ namespace NuGet
         {
             if (IsValidReference(reference))
             {
-                return SourceRepository.FindPackage(reference.Id, reference.Version);
+	            IPackage findPackage = SourceRepository.FindPackage(reference.Id, reference.Version);
+				if (findPackage == null && AllowMissingPackages)
+	            {
+		            findPackage=new MissingPackage(reference);
+					
+	            }
+	            return findPackage;
             }
-            return null;
+	        return null;
         }
 
         private static bool IsValidReference(PackageReference reference)
         {
             return !String.IsNullOrEmpty(reference.Id) && reference.Version != null;
         }
+
+		public class MissingPackage:IPackage
+		{
+			private readonly PackageReference _reference;
+
+			public MissingPackage(PackageReference reference)
+			{
+				_reference = reference;
+			}
+
+			public string Id { get { return _reference.Id; } }
+			public SemanticVersion Version { get { return _reference.Version; } }
+			public string Title { get { return "<missing package>"; } }
+			public IEnumerable<string> Authors {get { return new String[0]; } }
+			public IEnumerable<string> Owners { get { return new String[0]; } }
+			public Uri IconUrl {get { return null; }}
+			public Uri LicenseUrl { get { return null; } }
+			public Uri ProjectUrl { get { return null; } }
+			public bool RequireLicenseAcceptance { get { return false; }}
+			public bool DevelopmentDependency { get { return _reference.IsDevelopmentDependency; } }
+			public string Description { get { return "<missing package>"; } }
+			public string Summary { get { return "<missing package>"; } }
+			public string ReleaseNotes { get { return "<missing package>"; } }
+			public string Language { get { return "<missing package>"; } }
+			public string Tags { get { return "<missing package>"; } }
+			public string Copyright { get { return "<missing package>"; } }
+			public IEnumerable<FrameworkAssemblyReference> FrameworkAssemblies { get { return new FrameworkAssemblyReference[0]; } }
+			public ICollection<PackageReferenceSet> PackageAssemblyReferences { get { return new PackageReferenceSet[0]; } }
+			public IEnumerable<PackageDependencySet> DependencySets { get { return new PackageDependencySet[0]; } }
+			public Version MinClientVersion {get {return new Version();} }
+			public Uri ReportAbuseUrl { get { return null; } }
+			public int DownloadCount { get { return 0; } }
+			public bool IsAbsoluteLatestVersion { get { return false; }}
+			public bool IsLatestVersion { get { return false; } }
+			public bool Listed { get { return false; } }
+			public DateTimeOffset? Published { get { return null; } }
+			public IEnumerable<IPackageAssemblyReference> AssemblyReferences { get { return new IPackageAssemblyReference[0]; } }
+			public IEnumerable<IPackageFile> GetFiles()
+			{
+				return new IPackageFile[0];
+			}
+
+			public IEnumerable<FrameworkName> GetSupportedFrameworks()
+			{
+				return new FrameworkName[0];
+			}
+
+			public Stream GetStream()
+			{
+				throw new NotSupportedException("Package is missing, can't GetStream");
+			}
+
+			public void ExtractContents(IFileSystem fileSystem, string extractPath)
+			{
+				throw new NotSupportedException("Package is missing, can't ExtractContents");
+			}
+		}
     }
 }
