@@ -6,6 +6,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.Versioning;
+using System.Text;
 using System.Xml;
 using System.Xml.Linq;
 using NuGet.Resources;
@@ -18,8 +19,10 @@ namespace NuGet
         private readonly string _path;
         private readonly Dictionary<string, string> _constraints = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, string> _developmentFlags = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-        public PackageReferenceFile(string path) :
+	    
+		private byte[] _temporaryContent;
+      
+		public PackageReferenceFile(string path) :
             this(new PhysicalFileSystem(Path.GetDirectoryName(path)),
                                         Path.GetFileName(path))
         {
@@ -228,7 +231,9 @@ namespace NuGet
             }
         }
 
-        private void AddEntry(XDocument document, string id, SemanticVersion version, bool developmentDependency, FrameworkName targetFramework)
+	    public bool AllowDelayedSave { get; set; }
+
+	    private void AddEntry(XDocument document, string id, SemanticVersion version, bool developmentDependency, FrameworkName targetFramework)
         {
             AddEntry(document, id, version, developmentDependency, targetFramework, requireReinstallation: false);
         }
@@ -293,6 +298,7 @@ namespace NuGet
                     select e).FirstOrDefault();
         }
 
+
         private void SaveDocument(XDocument document)
         {
             // Sort the elements by package id and only take valid entries (one with both id and version)
@@ -309,6 +315,13 @@ namespace NuGet
             // Re-add them sorted
             document.Root.Add(packageElements);
 
+	        if (AllowDelayedSave)
+	        {
+		        var sw = new MemoryStream();
+		        document.Save(sw);
+		        _temporaryContent = sw.ToArray();
+		        return;
+	        }
             _fileSystem.AddFile(_path, document.Save);
         }
 
@@ -342,7 +355,15 @@ namespace NuGet
                 if (!document.Root.HasElements)
                 {
                     // Remove the file if there are no more elements
-                    _fileSystem.DeleteFile(_path);
+	                if (AllowDelayedSave)
+	                {
+						_temporaryContent = new byte[0];
+		                
+	                }
+	                else
+	                {
+						_fileSystem.DeleteFile(_path);
+	                }
 
                     return true;
                 }
@@ -355,6 +376,14 @@ namespace NuGet
         {
             try
             {
+	            if (_temporaryContent != null)
+	            {
+					if (_temporaryContent.Length==0)
+		            {
+						return new XDocument(new XElement("packages"));
+		            }
+					return XmlUtility.LoadSafe(new MemoryStream(_temporaryContent));
+	            }
                 // If the file exists then open and return it
                 if (_fileSystem.FileExists(_path))
                 {
@@ -386,5 +415,18 @@ namespace NuGet
             // but we don't want any space in the file name, so convert it to underscore.
             return "packages." + projectName.Replace(' ', '_') + ".config";
         }
+
+	    public void Save()
+	    {
+		    if (!AllowDelayedSave|| _temporaryContent == null) return;//no change
+		    if (_temporaryContent.Length==0)
+		    {
+			    _fileSystem.DeleteFile(_path);
+		    }
+		    else
+		    {
+				_fileSystem.AddFile(_path, new MemoryStream(_temporaryContent));
+		    }
+	    }
     }
 }
