@@ -274,7 +274,13 @@
     <value>Unable to locate '{0} {1}'. Make sure all packages exist in the packages folder before running update.</value>
   </data>
   <data name="UnableToFindPackages" xml:space="preserve">
-    <value>Unable to find '{0}'. Make sure they are specified in packages.config or packages from packages.config exists in repository. Try TryFixMissingPackages parameter.</value>
+    <value>Unable to find '{0}'. Make sure they are specified in packages.config or packages from packages.config exists in repository.</value>
+  </data>  
+  <data name="UpdateCommandTryFixMissingPackagesHint" xml:space="preserve">
+    <value>There are some missing packages. You've probably invalid version specified in packages.config. Try call update with -TryFixMissingPackages switch.</value>
+  </data>
+  <data name="UpdateCommandTryFixMissingDirtyWarning" xml:space="preserve">
+    <value>Update of '{0}' is DIRTY (TryFixMissingDirtyWarning switch is on), because we can't remove package correctly. Package was not found in local repository. Trying to update to newer version. </value>
   </data>
   <data name="UnableToLocatePackagesFolder" xml:space="preserve">
     <value>Unable to locate the packages folder. Try specifying it using the repositoryPath switch.</value>

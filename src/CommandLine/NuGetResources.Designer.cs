@@ -13709,7 +13709,7 @@ namespace NuGet {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Unable to find &apos;{0}&apos;. Make sure they are specified in packages.config or packages from packages.config exists in repository. Try TryFixMissingPackages parameter..
+        ///   Looks up a localized string similar to Unable to find &apos;{0}&apos;. Make sure they are specified in packages.config or packages from packages.config exists in repository..
         /// </summary>
         internal static string UnableToFindPackages {
             get {
@@ -14965,6 +14965,24 @@ namespace NuGet {
         internal static string UpdateCommandNuGetUpToDate_trk {
             get {
                 return ResourceManager.GetString("UpdateCommandNuGetUpToDate_trk", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Update of &apos;{0}&apos; is DIRTY (TryFixMissingDirtyWarning switch is on), because we can&apos;t remove package correctly. Package was not found in local repository. Trying to update to newer version. .
+        /// </summary>
+        internal static string UpdateCommandTryFixMissingDirtyWarning {
+            get {
+                return ResourceManager.GetString("UpdateCommandTryFixMissingDirtyWarning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to There are some missing packages. You&apos;ve probably invalid version specified in packages.config. Try call update with -TryFixMissingPackages switch..
+        /// </summary>
+        internal static string UpdateCommandTryFixMissingPackagesHint {
+            get {
+                return ResourceManager.GetString("UpdateCommandTryFixMissingPackagesHint", resourceCulture);
             }
         }
         

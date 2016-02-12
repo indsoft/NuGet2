@@ -42,8 +42,8 @@ namespace NuGet.Commands
         public bool Prerelease { get; set; }
 
 
-		[Option(typeof(NuGetCommand), "UpdateCommandTryFix")]
-		public bool TryFixMissingPackage { get; set; }
+		[Option(typeof(NuGetCommand), "UpdateCommandTryFixMissingPackages")]
+		public bool TryFixMissingPackages { get; set; }
 
         [Option(typeof(NuGetCommand), "UpdateCommandFileConflictAction")]
         public FileConflictAction FileConflictAction { get; set; }
@@ -223,15 +223,16 @@ namespace NuGet.Commands
 
             // Create the local and source repositories
             var sharedPackageRepository = new SharedPackageRepository(pathResolver, sharedRepositoryFileSystem, sharedRepositoryFileSystem);
-			var localRepository = new PackageReferenceRepository(project, project.ProjectName, sharedPackageRepository) { AllowMissingPackages = TryFixMissingPackage };
+			var localRepository = new PackageReferenceRepository(project, project.ProjectName, sharedPackageRepository) { AllowMissingPackages = TryFixMissingPackages };
 	        localRepository.ReferenceFile.AllowDelayedSave = true;
-	        IEnumerable<PackageReference> packageReferences = localRepository.ReferenceFile.GetPackageReferences();
-			if (Id.Count==0)
-				Id.AddRange(packageReferences.Select(x=>x.Id));
-
-	        if (TryFixMissingPackage)
+	    
+	        if (TryFixMissingPackages)
 	        {
-		        Console.WriteWarning(true,"You're running in dangerous mode. Missing packages can't be removed correctly.");
+		        foreach (PackageReferenceRepository.MissingPackage missingPackage in localRepository.GetPackages().OfType<PackageReferenceRepository.MissingPackage>())
+		        {
+					Console.WriteWarning(true, LocalizedResourceManager.GetString("UpdateCommandTryFixMissingDirtyWarning"), missingPackage.Id + "." + missingPackage.Version);
+		        }
+		        
 	        }
 	        sourceRepository = sourceRepository ?? AggregateRepositoryHelper.CreateAggregateRepositoryFromSources(RepositoryFactory, SourceProvider, Source);
 
@@ -380,15 +381,23 @@ namespace NuGet.Commands
         private IEnumerable<IPackage> GetPackages(IPackageRepository repository)
         {
             var packages = repository.GetPackages();
-            if (Id.Any())
+	        string[] idToCheck = Id.ToArray();
+	        var packageRepository = repository as PackageReferenceRepository;
+	        if (packageRepository != null && !idToCheck.Any())
+	        {
+				IEnumerable<PackageReference> packageReferences = packageRepository.ReferenceFile.GetPackageReferences();
+				idToCheck=packageReferences.Select(x => x.Id).ToArray();
+	        }
+
+			if (idToCheck.Any())
             {
                 var packageIdSet = new HashSet<string>(packages.Select(r => r.Id), StringComparer.OrdinalIgnoreCase);
-                var idSet = new HashSet<string>(Id, StringComparer.OrdinalIgnoreCase);
-                var invalid = Id.Where(id => !packageIdSet.Contains(id));
+                var idSet = new HashSet<string>(idToCheck, StringComparer.OrdinalIgnoreCase);
+				var invalid = idToCheck.Where(id => !packageIdSet.Contains(id));
 
                 if (invalid.Any())
                 {
-	                if (!TryFixMissingPackage) Console.WriteWarning("Can't find packages. You can try call TryFixMissingPackage");
+					if (!TryFixMissingPackages) Console.WriteWarning(LocalizedResourceManager.GetString("UpdateCommandTryFixMissingPackagesHint"));
                     throw new CommandLineException(LocalizedResourceManager.GetString("UnableToFindPackages"), String.Join(", ", invalid));
                 }
 
