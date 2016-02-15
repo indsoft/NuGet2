@@ -209,18 +209,23 @@ namespace NuGet
 
 	    private void EnsureManifest()
         {
-		    if (File.Exists(GetCacheFilePath()))
+		    try
 		    {
-			    ReadManifest(null);
-			    return;
+			    if (File.Exists(GetCacheFilePath()))
+			    {
+				    ReadManifest(null);
+			    }
 		    }
-            using (Stream stream = _fileSystem.OpenFile(_packagePath))
-            {
-                using (Stream manifestStream = PackageHelper.GetManifestStream(stream))
-                {
-                    ReadManifest(manifestStream);
-                }
-            }
+		    catch
+		    {
+			    using (Stream stream = _fileSystem.OpenFile(_packagePath))
+			    {
+				    using (Stream manifestStream = PackageHelper.GetManifestStream(stream))
+				    {
+					    ReadManifest(manifestStream);
+				    }
+			    }
+		    }
         }
 
         [SuppressMessage("Microsoft.Design", "CA1031:DoNotCatchGeneralExceptionTypes", Justification = "We want to catch all the exceptions for CreateFile")]

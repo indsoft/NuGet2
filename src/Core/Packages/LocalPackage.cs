@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -219,23 +220,31 @@ namespace NuGet
 	    {
 		    return null;
 	    }
-
+		static readonly ConcurrentDictionary<string,object> FileLocks=new ConcurrentDictionary<string, object>(); 
         protected void ReadManifest(Stream manifestStream)
         {
 	        string cacheFilePath = GetCacheFilePath();
 	        Manifest manifest;
 	        if (cacheFilePath != null && File.Exists(cacheFilePath))
 	        {
-		        using (FileStream fs = File.OpenRead(cacheFilePath))
-			        manifest = Manifest.ReadFrom(fs,false,false);
+		        object fileLock = FileLocks.GetOrAdd(cacheFilePath,new object());
+				lock (fileLock)
+		        {
+			        using (FileStream fs = File.OpenRead(cacheFilePath))
+				        manifest = Manifest.ReadFrom(fs, false, false);
+		        }
 	        }
 	        else
 	        {
 		        manifest = Manifest.ReadFrom(manifestStream, validateSchema: false);
 		        if (cacheFilePath != null)
 		        {
-			        using (FileStream fs = File.Create(cacheFilePath))
-				        manifest.Save(fs, false);
+					object fileLock = FileLocks.GetOrAdd(cacheFilePath, new object());
+			        lock (fileLock)
+			        {
+				        using (FileStream fs = File.Create(cacheFilePath))
+					        manifest.Save(fs, false);
+			        }
 		        }
 	        }
 			
