@@ -9,6 +9,7 @@ using System.Runtime.Versioning;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
+using System.Xml.XPath;
 using NuGet.Resources;
 
 namespace NuGet
@@ -240,7 +241,7 @@ namespace NuGet
 
         private void AddEntry(XDocument document, string id, SemanticVersion version, bool developmentDependency, FrameworkName targetFramework, bool requireReinstallation)
         {
-            XElement element = FindEntry(document, id, version);
+            XElement element = FindEntry(document, id, null);
 
             if (element != null)
             {
@@ -279,8 +280,13 @@ namespace NuGet
             }
 
             document.Root.Add(newElement);
-
-            SaveDocument(document);
+	        string[] idcka = document.XPathSelectElements("//package").Select(x => x.Attribute("id").Value).ToArray();
+			string[] duplicateKeys = idcka.GroupBy(x => x).Where(x => x.Count() > 1).Select(x => x.Key).ToArray();
+			if (duplicateKeys.Length>0)
+			{
+				throw new Exception(String.Format("There are duplicate references in packages.config. Can't continue. Invalid references are for packages: {0}", String.Join(",",duplicateKeys)));
+			}
+	        SaveDocument(document);
         }
 
         private static XElement FindEntry(XDocument document, string id, SemanticVersion version)
