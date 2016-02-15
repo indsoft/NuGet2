@@ -340,7 +340,8 @@ namespace NuGet.Commands
 
             projectManager.Logger = project.Logger = this;
 
-            foreach (var package in GetPackages(localRepository))
+	        var packagesToUpdate = GetPackages(localRepository).OrderBy(x=>x.Id).ToArray();
+	        foreach (var package in packagesToUpdate)
             {
                 if (localRepository.Exists(package.Id))
                 {
@@ -365,14 +366,18 @@ namespace NuGet.Commands
                         {
                             if (Console.Verbosity == NuGet.Verbosity.Detailed)
                             {
-                                Console.WriteWarning(e.ToString());
+                                Console.WriteError(e.ToString());
                             }
                             else
                             {
-                                Console.WriteWarning(e.Message);
+								Console.WriteError(e.Message);
                             }
                         }
                     }
+                }
+                else
+                {
+					Console.WriteError("Can't update package {0} because is not in local repository",package.Id);
                 }
             }
 
