@@ -146,11 +146,11 @@ namespace NuGet.Commands
                 {
                     if (Console.Verbosity == NuGet.Verbosity.Detailed)
                     {
-                        Console.WriteWarning(e.ToString());
+                        Console.WriteError(e.ToString());
                     }
                     else
                     {
-                        Console.WriteWarning(e.Message);
+						Console.WriteError(e.Message);
                     }
                 }
             }
