@@ -7,6 +7,7 @@ using System.Globalization;
 using System.IO;
 using System.IO.Packaging;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.Versioning;
 using NuGet.Resources;
 
@@ -224,6 +225,7 @@ namespace NuGet
         }
 
         [SuppressMessage("Microsoft.Design", "CA1031:DoNotCatchGeneralExceptionTypes", Justification = "We want to catch all the exceptions for CreateFile")]
+		[MethodImpl(MethodImplOptions.Synchronized)]
         private void EnsurePackageFiles()
         {
             if (_files != null &&
