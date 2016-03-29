@@ -41,6 +41,8 @@ namespace NuGet.Commands
         [Option(typeof(NuGetCommand), "UpdateCommandPrerelease")]
         public bool Prerelease { get; set; }
 
+		[Option(typeof(NuGetCommand), "UpdateCommandAllowDowngradeFromPrerelease")]
+		public bool AllowDowngradeFromPrerelease { get; set; }
 
 		[Option(typeof(NuGetCommand), "UpdateCommandTryFixMissingPackages")]
 		public bool TryFixMissingPackages { get; set; }
@@ -327,7 +329,8 @@ namespace NuGet.Commands
 
             var projectManager = new ProjectManager(sourceRepository, pathResolver, project, localRepository)
                                  {
-                                     ConstraintProvider = constraintProvider
+                                     ConstraintProvider = constraintProvider,
+									 AllowDowngradeFromPrerelease = AllowDowngradeFromPrerelease
                                  };
 
             // Fix for work item 2411: When updating packages, we did not add packages to the shared package repository. 
@@ -351,7 +354,7 @@ namespace NuGet.Commands
                         {
                             // If the user explicitly allows prerelease or if the package being updated is prerelease we'll include prerelease versions in our list of packages
                             // being considered for an update.
-                            bool allowPrerelease = Prerelease || !package.IsReleaseVersion();
+                            bool allowPrerelease = Prerelease || (!package.IsReleaseVersion() && !AllowDowngradeFromPrerelease);
                             if (Safe)
                             {
                                 IVersionSpec safeRange = VersionUtility.GetSafeRange(package.Version);

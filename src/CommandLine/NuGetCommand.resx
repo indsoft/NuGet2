@@ -411,6 +411,9 @@ nuget spec -a MyAssembly.dll</value>
   </data>
   <data name="UpdateCommandTryFixMissingPackages" xml:space="preserve">
     <value>Allows updating if existing package is missing. Automaticaly updates to latest allowed version.</value>
+  </data> 
+  <data name="UpdateCommandAllowDowngradeFromPrerelease" xml:space="preserve">
+    <value>Allows to rollback version while updating prerelease version to latest release.</value>
   </data>
   <data name="UpdateCommandRepositoryPathDescription" xml:space="preserve">
     <value>Path to the local packages folder (location where packages are installed).</value>

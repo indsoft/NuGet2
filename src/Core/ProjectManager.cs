@@ -117,7 +117,9 @@ namespace NuGet
             set;
         }
 
-        /// <summary>
+	    public bool AllowDowngradeFromPrerelease { get; set; }
+
+	    /// <summary>
         /// Seems to be used by unit tests only. Perhaps, consumers of NuGet.Core may be using this overload
         /// </summary>
         public virtual void AddPackageReference(string packageId)
@@ -159,7 +161,8 @@ namespace NuGet
                                               {
                                                   DisableWalkInfo = WhatIf,
                                                   AcceptedTargets = PackageTargets.Project,
-                                                  DependencyVersion = DependencyVersion
+                                                  DependencyVersion = DependencyVersion,
+												  AllowDowngradeFromPrerelease = AllowDowngradeFromPrerelease
                                               });
         }
 
@@ -589,7 +592,7 @@ namespace NuGet
             // without specifying a version explicitly, and the feed only has version 1.0 as the latest stable version.
             if (package != null &&
                 oldPackage.Version != package.Version &&
-                (allowPrereleaseVersions || targetVersionSetExplicitly || oldPackage.IsReleaseVersion() || !package.IsReleaseVersion() || oldPackage.Version < package.Version))
+				(allowPrereleaseVersions || targetVersionSetExplicitly || AllowDowngradeFromPrerelease || oldPackage.IsReleaseVersion() || !package.IsReleaseVersion() || oldPackage.Version < package.Version))
             {
                 Logger.Log(MessageLevel.Info, NuGetResources.Log_UpdatingPackages, package.Id, oldPackage.Version, package.Version, Project.ProjectName);
                 UpdatePackageReferenceCore(package, updateDependencies, allowPrereleaseVersions);

@@ -142,6 +142,7 @@ namespace NuGet
                 return _allowPrereleaseVersions;
             }
         }
+		public bool AllowDowngradeFromPrerelease { get; set; }
 
         protected IPackageRepository SourceRepository
         {
@@ -192,10 +193,13 @@ namespace NuGet
             //      B1 -> C >= 1
             //      C2 -> []
             // Given the above graph, if we upgrade from C1 to C2, we need to see if A and B can work with the new C
-            var incompatiblePackages = from dependentPackage in GetDependents(conflictResult)
-                                       let dependency = dependentPackage.FindDependency(package.Id, TargetFramework)
-                                       where dependency != null && !dependency.VersionSpec.Satisfies(package.Version)
-                                       select dependentPackage;
+            IEnumerable<IPackage> incompatiblePackages =
+	            GetDependents(conflictResult)
+		            .Select(
+			            dependentPackage =>
+				            new {dependentPackage, dependency = dependentPackage.FindDependency(package.Id, TargetFramework)})
+		            .Where(t => t.dependency != null && !t.dependency.VersionSpec.Satisfies(package.Version))
+		            .Select(t => t.dependentPackage).ToArray();
 
             // If there were incompatible packages that we failed to update then we throw an exception
             if (incompatiblePackages.Any() && !TryUpdate(incompatiblePackages, conflictResult, package, out incompatiblePackages))
@@ -268,15 +272,27 @@ namespace NuGet
             }
 
             // Get compatible packages in one batch so we don't have to make requests for each one
-            var packages = from p in SourceRepository.FindCompatiblePackages(ConstraintProvider, dependentsLookup.Keys, package, TargetFramework, AllowPrereleaseVersions)
-                           group p by p.Id into g
-                           let oldPackage = dependentsLookup[g.Key]
-                           select new
-                           {
-                               OldPackage = oldPackage,
-                               NewPackage = SelectDependency(g.Where(p => p.Version > oldPackage.Version)
-                                   .OrderBy(p => p.Version))
-                           };
+            var packages =
+	            SourceRepository.FindCompatiblePackages(ConstraintProvider, dependentsLookup.Keys, package, TargetFramework,AllowPrereleaseVersions)
+		            .GroupBy(p => p.Id)
+		            .Select(g => new {g, oldPackage = dependentsLookup[g.Key]})
+		            .Select(t =>
+		            {
+			            IEnumerable<IPackage> candidates = t.g.Where(
+				            p => (p.Version > t.oldPackage.Version ))
+				            .OrderBy(p => p.Version);
+			            if (!AllowPrereleaseVersions && !t.oldPackage.IsReleaseVersion() && !candidates.Any() && AllowDowngradeFromPrerelease)
+				            //changing from prerelease back to release and there are no candidates
+			            {
+							candidates=t.g.OrderByDescending(p => p.Version).Take(1);//only latest version.
+			            }
+			            return new
+			            {
+				            OldPackage = t.oldPackage,
+				            NewPackage =
+					            SelectDependency(candidates)
+			            };
+		            });
 
             foreach (var p in packages)
             {
