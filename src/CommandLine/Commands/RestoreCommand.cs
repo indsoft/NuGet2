@@ -315,7 +315,7 @@ namespace NuGet.Commands
             SourceProvider = new CachedPackageSourceProvider(SourceProvider);
 
             var satellitePackages = new ConcurrentQueue<IPackage>();
-            if (DisableParallelProcessing)
+          //  if (DisableParallelProcessing) //disabled due to exceptions in PackageApi
             {
                 foreach (var package in packageReferences)
                 {
@@ -327,13 +327,13 @@ namespace NuGet.Commands
                 return true;
             }
 
-            var tasks = packageReferences.Select(package =>
-                            Task.Factory.StartNew(() => RestorePackage(fileSystem, package.Id, package.Version, packageRestoreConsent, satellitePackages))).ToArray();
-
-            Task.WaitAll(tasks);
-            // Return true if we installed any satellite packages or if any of our install tasks succeeded.
-            return InstallSatellitePackages(fileSystem, satellitePackages) ||
-                   tasks.All(p => !p.IsFaulted && p.Result);
+          //  var tasks = packageReferences.Select(package =>
+          //                  Task.Factory.StartNew(() => RestorePackage(fileSystem, package.Id, package.Version, packageRestoreConsent, satellitePackages))).ToArray();
+		  //
+          //  Task.WaitAll(tasks);
+          //  // Return true if we installed any satellite packages or if any of our install tasks succeeded.
+          //  return InstallSatellitePackages(fileSystem, satellitePackages) ||
+          //         tasks.All(p => !p.IsFaulted && p.Result);
         }
 
         private bool InstallSatellitePackages(IFileSystem packagesFolderFileSystem, ConcurrentQueue<IPackage> satellitePackages)
