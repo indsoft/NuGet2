@@ -73,6 +73,7 @@ namespace NuGet.Commands
             base(cacheRepository)
         {
             _outputOptOutMessage = true;
+   //         DisableParallelProcessing = true; //LS: Broken on server environment.
         }
 
         internal void DetermineRestoreMode()

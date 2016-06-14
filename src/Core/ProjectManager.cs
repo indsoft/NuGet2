@@ -171,10 +171,29 @@ namespace NuGet
             IEnumerable<PackageOperation> operations = resolver.ResolveOperations(package);
             if (operations.Any())
             {
+                HashSet<string> fullyRemoved=new HashSet<string>();
+                if (resolver is UpdateWalker) //in update we will disable package removal (same behaviour as Nuget 3.0)
+                    foreach (PackageOperation operation in operations)
+                    {
+                        if (operation.Action == PackageAction.Uninstall)
+                        {
+                            fullyRemoved.Add(operation.Package.Id);
+                        }
+                        else //install
+                        {
+                            fullyRemoved.Remove(operation.Package.Id);
+                        }
+                    }
                 foreach (PackageOperation operation in operations)
                 {
+                    if (fullyRemoved.Contains(operation.Package.Id))
+                    {
+                        Logger.Log(MessageLevel.Warning,"Package {0} is trying to fully remove package {1} without replacement (probably due to change in dependencies). Disabling removal.",package,operation.Package);
+                        continue;
+                    }
                     Execute(operation);
                 }
+               
             }
             else if (LocalRepository.Exists(package))
             {

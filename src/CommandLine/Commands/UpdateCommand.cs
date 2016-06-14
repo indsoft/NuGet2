@@ -154,6 +154,7 @@ namespace NuGet.Commands
                     {
 						Console.WriteError(e.Message);
                     }
+                    throw;
                 }
             }
         }
@@ -375,12 +376,14 @@ namespace NuGet.Commands
                             {
 								Console.WriteError(e.Message);
                             }
+                            throw;
                         }
                     }
                 }
                 else
                 {
 					Console.WriteError("Can't update package {0} because is not in local repository",package.Id);
+                    throw new ApplicationException(string.Format("Can't update package {0} because is not in local repository", package.Id));
                 }
             }
 
@@ -417,7 +420,7 @@ namespace NuGet.Commands
 
         public void Log(MessageLevel level, string message, params object[] args)
         {
-            if (Verbose && Console != null)
+            if ((Verbose ||level==MessageLevel.Error||level==MessageLevel.Warning) && Console != null)
             {
                 Console.Log(level, message, args);
             }
