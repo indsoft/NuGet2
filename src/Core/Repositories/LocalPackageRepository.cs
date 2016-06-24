@@ -102,6 +102,8 @@ namespace NuGet
                                                       .ToList();
 
                 FileSystem.AddFileWithCheck(packageFilePath, manifest.Save);
+                UpdateAllPackageNodesAddFile(packageFilePath);
+
             }
 
             if (PackageSaveMode.HasFlag(PackageSaveModes.Nupkg))
@@ -109,7 +111,19 @@ namespace NuGet
                 string packageFilePath = GetPackageFilePath(package);
 
                 FileSystem.AddFileWithCheck(packageFilePath, package.GetStream);
-	            lock (_allPackageNodes) _allPackageNodes.Remove(Path.GetExtension(packageFilePath) ?? "");
+                UpdateAllPackageNodesAddFile(packageFilePath);
+            }
+        }
+
+        private void UpdateAllPackageNodesAddFile(string packageFilePath)
+        {
+            lock (_allPackageNodes)
+            {
+                RootNamingTreeNode rootNode;
+                if (_allPackageNodes.TryGetValue(Path.GetExtension(packageFilePath) ?? "", out rootNode))
+                {
+                    rootNode.AddFile(packageFilePath);
+                }
             }
         }
 
@@ -334,7 +348,7 @@ namespace NuGet
         }
 
 		//key: extension
-	    private readonly Dictionary<string,NamingTreeNode> _allPackageNodes=new Dictionary<string, NamingTreeNode>();
+	    private readonly Dictionary<string, RootNamingTreeNode> _allPackageNodes=new Dictionary<string, RootNamingTreeNode>();
 
         internal IEnumerable<string> GetPackageFiles(string filter = null)
         {
@@ -348,12 +362,15 @@ namespace NuGet
             // {id}.{version}\{packagefile}.{extension}.
 
 	        string extension = Path.GetExtension(filter);
-	        NamingTreeNode knownPackages;
-			if (!_allPackageNodes.TryGetValue(extension, out knownPackages))
-	        {
-		        knownPackages = PreparePackages(extension);
-				_allPackageNodes[extension] = knownPackages;
-	        }
+	        RootNamingTreeNode knownPackages;
+			lock (_allPackageNodes)
+			{
+			    if (!_allPackageNodes.TryGetValue(extension, out knownPackages))
+			    {
+			        knownPackages = PreparePackages(extension);
+			        _allPackageNodes[extension] = knownPackages;
+			    }
+			}
 
 	        IEnumerable<string> result = knownPackages.GetFiltered(filter);
 
@@ -395,7 +412,7 @@ namespace NuGet
 			}
 	    }*/
 
-	    private NamingTreeNode PreparePackages(string extension)
+	    private RootNamingTreeNode PreparePackages(string extension)
 	    {
 			var allPackages=new List<string>();
 			foreach (var dir in FileSystem.GetDirectories(String.Empty))
@@ -404,12 +421,47 @@ namespace NuGet
 			}
 			// Check top level directory
 			allPackages.AddRange(FileSystem.GetFiles(String.Empty, "*" + extension));
-			NamingTreeNode root=new NamingTreeNode(null,allPackages.Select(x=>new PackagePath{FileName = Path.GetFileNameWithoutExtension(x),FullPath = x}).ToArray());
-			return root;
+			return new RootNamingTreeNode(allPackages);
 	    }
 		private static readonly Regex PackageNameRegex = new Regex(@"^(.+)\.\d+\.\d+\.\d+\.\d+.*$",RegexOptions.Compiled);
 
+        private class RootNamingTreeNode
+        {
+            private readonly List<string> _allPackages;
+            private NamingTreeNode _rootNode;
 
+            public RootNamingTreeNode(List<string> allPackages)
+            {
+                _allPackages = allPackages;
+                RebuildNodes();
+            }
+
+            private void RebuildNodes()
+            {
+                _rootNode=new NamingTreeNode(null, _allPackages.Select(x => new PackagePath { FileName = Path.GetFileNameWithoutExtension(x), FullPath = x }).ToArray());
+            }
+
+            public void AddFile(string fileName)
+            {
+                if (!_allPackages.Contains(fileName))
+                {
+                    _allPackages.Add(fileName);
+                    RebuildNodes();
+                }
+            }
+            public void RemoveFile(string fileName)
+            {
+                if (_allPackages.Contains(fileName))
+                {
+                    _allPackages.Remove(fileName);
+                    RebuildNodes();
+                }
+            }
+            public IEnumerable<string> GetFiltered(string filter)
+            {
+                return _rootNode.GetFiltered(filter);
+            }
+        }
 	    
 		private class NamingTreeNode
 		{

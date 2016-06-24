@@ -248,7 +248,8 @@ namespace NuGet.Commands
                 throw new InvalidOperationException(message);
             }
         }
-
+        [ThreadStatic]
+        private static IPackageManager _packageManagerCache;
         private bool RestorePackage(
             IFileSystem packagesFolderFileSystem,
             string packageId,
@@ -256,7 +257,12 @@ namespace NuGet.Commands
             bool packageRestoreConsent,
             ConcurrentQueue<IPackage> satellitePackages)
         {
-            var packageManager = CreatePackageManager(packagesFolderFileSystem, useSideBySidePaths: true);
+           
+            if (_packageManagerCache == null)
+            {
+                _packageManagerCache = CreatePackageManager(packagesFolderFileSystem, useSideBySidePaths: true);
+            }
+            IPackageManager packageManager = _packageManagerCache;
             if (IsPackageInstalled(packageManager.LocalRepository, packagesFolderFileSystem, packageId, version))
             {
                 return false;
