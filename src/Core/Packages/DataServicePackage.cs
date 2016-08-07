@@ -388,6 +388,7 @@ namespace NuGet
                         (stream) => Downloader.DownloadPackage(DownloadUrl, this, stream)))
                     {
                         newPackage = cacheRepository.FindPackage(packageMetadata.Id, packageMetadata.Version);
+                        if (newPackage==null) throw new Exception(String.Format("Can't find package {0}-{1} in local cache after download from {2}",packageMetadata.Id, packageMetadata.Version, DownloadUrl));
                         Debug.Assert(newPackage != null);
                     }
                     else
