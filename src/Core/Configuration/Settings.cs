@@ -124,6 +124,10 @@ namespace NuGet
                 return NullSettings.Instance;
             }
 
+            foreach (Settings validSettingFile in validSettingFiles)
+            {
+                Console.WriteLine("Using config file: {0}", validSettingFile.ConfigFilePath);
+            }
             validSettingFiles[0]._priority = validSettingFiles.Count;
 
             // if multiple setting files were loaded, chain them in a linked list
