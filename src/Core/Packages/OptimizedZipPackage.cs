@@ -211,14 +211,17 @@ namespace NuGet
 		    return _fileSystem.GetFullPath(_packagePath) + ".manifestCache";
 
 	    }
-
+        protected override string GetPackagePath()
+        {
+            return _fileSystem.GetFullPath(_packagePath);
+        }
 	    private void EnsureManifest()
         {
-		    if (File.Exists(GetCacheFilePath()))
-		    {
-			    ReadManifest(null);
-			    return;
-		    }
+            if (AlternateDataStreams.AlternateStreamExist(GetPackagePath(), "manifest"))
+            {
+                ReadManifest(null);
+                return;
+            }
             using (Stream stream = _fileSystem.OpenFile(_packagePath))
             {
                 using (Stream manifestStream = PackageHelper.GetManifestStream(stream))
