@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -25,7 +26,8 @@ namespace NuGet
             GENERIC_ALL, FILE_SHARE_READ, IntPtr.Zero, OPEN_ALWAYS,
             FILE_ATTRIBUTE_NORMAL, IntPtr.Zero);
             if (handle.IsInvalid)
-                Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
+                throw new Win32Exception(Marshal.GetLastWin32Error(),string.Format("Can't get handle for file {0} - alternate data stream {1}",path, name ));
+            //    Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
             return handle;
         }
 
