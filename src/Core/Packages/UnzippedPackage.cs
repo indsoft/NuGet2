@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.Versioning;
+using NuGet.Packages;
 using NuGet.Resources;
 
 namespace NuGet
@@ -26,7 +27,7 @@ namespace NuGet
     ///         [tools]
     ///              install.ps1
     /// </remarks>
-    internal class UnzippedPackage : LocalPackage
+    internal class UnzippedPackage : LocalPackage, IPackagePhysicalPathInfo
     {
         private readonly IFileSystem _repositoryFileSystem;
         private readonly string _packageFileName;
@@ -56,6 +57,7 @@ namespace NuGet
 
             _packageFileName = packageName + Constants.PackageExtension;
             _packagePath = packageName;
+            PhysicalFilePath = repositoryFileSystem.GetFullPath(_packagePath);
             _repositoryFileSystem = repositoryFileSystem;
 
             // we look for the .nuspec file at jQuery.1.4\jQuery.1.4.nuspec
@@ -83,6 +85,7 @@ namespace NuGet
             _repositoryFileSystem = repositoryFileSystem;
             _packagePath = Path.Combine(packageId, version.ToNormalizedString());
             _packageFileName = Path.Combine(_packagePath, packageId + "." + version.ToNormalizedString() + Constants.PackageExtension);
+            PhysicalFilePath = repositoryFileSystem.GetFullPath(_packageFileName);
             EnsureManifest(Path.Combine(_packagePath, packageId + Constants.ManifestExtension));
         }
 
@@ -179,5 +182,7 @@ namespace NuGet
 
             Published = _repositoryFileSystem.GetLastModified(manifestFilePath);
         }
+
+        public string PhysicalFilePath { get; private set; }
     }
 }

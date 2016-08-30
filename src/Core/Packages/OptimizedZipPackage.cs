@@ -9,6 +9,7 @@ using System.IO.Packaging;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.Versioning;
+using NuGet.Packages;
 using NuGet.Resources;
 
 namespace NuGet
@@ -20,7 +21,7 @@ namespace NuGet
     /// Unlike <see cref="ZipPackage"/>, OptimizedZipPackage doesn't store content files in memory.
     /// Instead, it unzips the .nupkg file to a temp folder on disk, which helps reduce overall memory usage.
     /// </remarks>
-    public class OptimizedZipPackage : LocalPackage
+    public class OptimizedZipPackage : LocalPackage, IPackagePhysicalPathInfo
     {
         // The DateTimeOffset entry stores the LastModifiedTime of the original .nupkg file that
         // is passed to this class. This is so that we can invalidate the cache when the original
@@ -60,6 +61,7 @@ namespace NuGet
             string directory = Path.GetDirectoryName(fullPackagePath);
             _fileSystem = new PhysicalFileSystem(directory);
             _packagePath = Path.GetFileName(fullPackagePath);
+            PhysicalFilePath = _fileSystem.GetFullPath(_packagePath);
             _expandedFileSystem = _tempFileSystem;
 
             EnsureManifest();
@@ -84,6 +86,7 @@ namespace NuGet
 
             _fileSystem = fileSystem;
             _packagePath = packagePath;
+            PhysicalFilePath = _fileSystem.GetFullPath(_packagePath);
             _expandedFileSystem = _tempFileSystem;
 
             EnsureManifest();
@@ -116,6 +119,7 @@ namespace NuGet
 
             _fileSystem = fileSystem;
             _packagePath = packagePath;
+            PhysicalFilePath = _fileSystem.GetFullPath(_packagePath);
             _expandedFileSystem = expandedFileSystem;
 
             EnsureManifest();
@@ -344,5 +348,7 @@ namespace NuGet
                 }
             }
         }
+
+        public string PhysicalFilePath { get; private set; }
     }
 }

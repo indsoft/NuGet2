@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.Versioning;
 using System.Xml.Linq;
+using NuGet.Packages;
 using NuGet.Resources;
 
 namespace NuGet
@@ -257,7 +258,10 @@ namespace NuGet
         protected void AddPackageReferenceToProject(IPackage package)
         {
             string packageFullName = package.GetFullName();
-            Logger.Log(MessageLevel.Info, NuGetResources.Log_BeginAddPackageReference, packageFullName, Project.ProjectName);
+            Console.WriteLine(NuGetResources.Log_BeginAddPackageReference, packageFullName, Project.ProjectName);
+            IPackagePhysicalPathInfo physicalPath=package as IPackagePhysicalPathInfo;
+            if (physicalPath!=null)
+                Console.WriteLine("\tUsing package source {0}",physicalPath.PhysicalFilePath);
 
             PackageOperationEventArgs args = CreateOperation(package);
             OnPackageReferenceAdding(args);

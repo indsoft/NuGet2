@@ -56,6 +56,7 @@ namespace NuGet
                 throw new ArgumentNullException("repositories");
             }
             _repositories = Flatten(repositories);
+            PrintConfiguration();
 
             Func<IPackageRepository, bool> supportsPrereleasePackages = Wrap(r => r.SupportsPrereleasePackages, defaultValue: true);
             _supportsPrereleasePackages = new Lazy<bool>(() => _repositories.All(supportsPrereleasePackages));
@@ -88,8 +89,19 @@ namespace NuGet
                              where repository != null
                              select repository).ToArray();
 
+            PrintConfiguration();
+
             Func<IPackageRepository, bool> supportsPrereleasePackages = Wrap(r => r.SupportsPrereleasePackages, defaultValue: true);
             _supportsPrereleasePackages = new Lazy<bool>(() => _repositories.All(supportsPrereleasePackages));
+        }
+
+        private void PrintConfiguration()
+        {
+            Console.WriteLine("Configured aggregate repository:");
+            foreach (IPackageRepository packageRepository in _repositories)
+            {
+                Console.WriteLine("\t{0}",  packageRepository.Source);
+            }
         }
 
         public override IQueryable<IPackage> GetPackages()

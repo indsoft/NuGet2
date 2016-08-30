@@ -5,11 +5,12 @@ using System.IO;
 using System.IO.Packaging;
 using System.Linq;
 using System.Runtime.Versioning;
+using NuGet.Packages;
 using NuGet.Resources;
 
 namespace NuGet
 {
-    public class ZipPackage : LocalPackage
+    public class ZipPackage : LocalPackage, IPackagePhysicalPathInfo
     {
         private const string CacheKeyFormat = "NUGET_ZIP_PACKAGE_{0}_{1}{2}";
         private const string AssembliesCacheKey = "ASSEMBLIES";
@@ -31,7 +32,7 @@ namespace NuGet
         {
         }
 
-        public ZipPackage(Func<Stream> packageStreamFactory, Func<Stream> manifestStreamFactory)
+        public ZipPackage(Func<Stream> packageStreamFactory, Func<Stream> manifestStreamFactory, string physicalPathInfo)
         {
             if (packageStreamFactory == null)
             {
@@ -45,6 +46,7 @@ namespace NuGet
 
             _enableCaching = false;
             _streamFactory = packageStreamFactory;
+            PhysicalFilePath = physicalPathInfo;
             EnsureManifest(manifestStreamFactory);
         }
 
@@ -241,5 +243,7 @@ namespace NuGet
                 MemoryCache.Instance.Remove(zipPackage.GetFilesCacheKey());
             }
         }
+
+        public string PhysicalFilePath { get; private set; }
     }
 }
