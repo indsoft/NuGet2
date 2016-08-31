@@ -267,32 +267,29 @@ namespace NuGet
             string packageFilePath = GetPackagePath();
             Manifest manifest;
             // AlternateDataStreams.DeleteAlternateStream(packageFilePath, "manifest");
-            if (AlternateDataStreams.AlternateStreamExist(packageFilePath, "manifest"))
+            object fileLock = FileLocks.GetOrAdd(packageFilePath, new object());
+            lock (fileLock)
             {
+                if (AlternateDataStreams.AlternateStreamExist(packageFilePath, "manifest"))
+                {
 
-                object fileLock = FileLocks.GetOrAdd(packageFilePath, new object());
-                lock (fileLock)
-                {
-                    SafeFileHandle safeFileHandle = AlternateDataStreams.GetHandle(packageFilePath, "manifest");
-                    using (FileStream fs = new FileStream(safeFileHandle, FileAccess.Read))
-                        manifest = Manifest.ReadFrom(fs, false, false);
-                    safeFileHandle.Close();
+                        SafeFileHandle safeFileHandle = AlternateDataStreams.GetExistingHandle(packageFilePath, "manifest");
+                        using (FileStream fs = new FileStream(safeFileHandle, FileAccess.Read))
+                            manifest = Manifest.ReadFrom(fs, false, false);
+                        safeFileHandle.Close();
                 }
-            }
-            else
-            {
-                manifest = Manifest.ReadFrom(manifestStream, validateSchema: false);
-                object fileLock = FileLocks.GetOrAdd(packageFilePath, new object());
-                lock (fileLock)
+                else
                 {
-                    SafeFileHandle safeFileHandle = AlternateDataStreams.GetHandle(packageFilePath, "manifest");
+                    manifest = Manifest.ReadFrom(manifestStream, validateSchema: false);
+
+                    SafeFileHandle safeFileHandle = AlternateDataStreams.GetHandleForNew(packageFilePath, "manifest");
                     using (FileStream fs = new FileStream(safeFileHandle, FileAccess.ReadWrite))
                         manifest.Save(fs, false);
                     safeFileHandle.Close();
                 }
             }
 
-            IPackageMetadata metadata = manifest.Metadata;
+        IPackageMetadata metadata = manifest.Metadata;
 
             Id = metadata.Id;
             Version = metadata.Version;
