@@ -117,7 +117,7 @@ namespace NuGet
 
                     if (resolvedDependency == null)
                     {
-                        OnDependencyResolveError(dependency);
+                        OnDependencyResolveError(package, dependency);
                         // If we're skipping dependency resolve errors then move on to the next
                         // dependency
                         if (SkipDependencyResolveError)
@@ -234,7 +234,7 @@ namespace NuGet
         {
         }
 
-        protected virtual void OnDependencyResolveError(PackageDependency dependency)
+        protected virtual void OnDependencyResolveError(IPackage package, PackageDependency dependency)
         {
         }
 

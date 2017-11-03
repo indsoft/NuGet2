@@ -183,7 +183,7 @@ namespace NuGet
 
         }
 
-        protected override void OnDependencyResolveError(PackageDependency dependency)
+        protected override void OnDependencyResolveError(IPackage package, PackageDependency dependency)
         {
             Logger.Log(MessageLevel.Warning, NuGetResources.UnableToLocateDependency, dependency);
         }

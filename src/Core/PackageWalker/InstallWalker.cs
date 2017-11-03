@@ -426,7 +426,7 @@ namespace NuGet
             return sourcePackage;
         }
 
-        protected override void OnDependencyResolveError(PackageDependency dependency)
+        protected override void OnDependencyResolveError(IPackage package, PackageDependency dependency)
         {
             IVersionSpec spec = ConstraintProvider.GetConstraint(dependency.Id);
 
@@ -437,7 +437,7 @@ namespace NuGet
             }
 
             throw new InvalidOperationException(
-                String.Format(CultureInfo.CurrentCulture,
+                String.Format(CultureInfo.CurrentCulture,package+" : "+
                 NuGetResources.UnableToResolveDependency + message, dependency));
         }
 

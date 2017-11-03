@@ -55,7 +55,7 @@ namespace NuGet
             return _repository.ResolveDependency(dependency, allowPrereleaseVersions: true, preferListedPackages: false);
         }
 
-        protected override void OnDependencyResolveError(PackageDependency dependency)
+        protected override void OnDependencyResolveError(IPackage package, PackageDependency dependency)
         {
             // ignore dependency error
         }
