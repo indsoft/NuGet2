@@ -326,7 +326,15 @@ namespace NuGet.Commands
             {
                 foreach (var package in packageReferences)
                 {
-                    RestorePackage(fileSystem, package.Id, package.Version, packageRestoreConsent, satellitePackages);
+                    try
+                    {
+                        RestorePackage(fileSystem, package.Id, package.Version, packageRestoreConsent, satellitePackages);
+
+                    }
+                    catch (InvalidOperationException e) when (package.ReferenceInfo!=null)
+                    {
+                        throw new InvalidOperationException($"{e.Message} - {package.ReferenceInfo}");
+                    }
                 }
 
                 InstallSatellitePackages(fileSystem, satellitePackages);

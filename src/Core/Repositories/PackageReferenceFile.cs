@@ -164,7 +164,7 @@ namespace NuGet
                     }
                 }
 
-                yield return new PackageReference(id, version, versionConstaint, targetFramework, developmentFlag, requireReinstallation);
+                yield return new PackageReference(id, version, versionConstaint, targetFramework, developmentFlag, requireReinstallation){ReferenceInfo = _fileSystem.GetFullPath(_path)};
             }
         }
 

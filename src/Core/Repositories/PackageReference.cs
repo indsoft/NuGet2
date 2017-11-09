@@ -22,6 +22,11 @@ namespace NuGet
         public bool IsDevelopmentDependency { get; private set; }
         public bool RequireReinstallation { get; private set; }
 
+        /// <summary>
+        /// Informace, odkud se reference vzala(kdo chtel)
+        /// </summary>
+        public string ReferenceInfo { get; set; }
+
         public override bool Equals(object obj)
         {
             var reference = obj as PackageReference;
